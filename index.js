@@ -19,12 +19,42 @@ app.get("/webhook", (req, res) => {
   }
 });
 
-// Recibir mensajes
-app.post("/webhook", (req, res) => {
-  console.log("Mensaje recibido:");
-  console.log(JSON.stringify(req.body, null, 2));
+app.post("/webhook", async (req, res) => {
+  try {
+    const entry = req.body.entry?.[0];
+    const changes = entry?.changes?.[0];
+    const value = changes?.value;
 
-  res.sendStatus(200);
+    const message = value?.messages?.[0];
+
+    if (message) {
+      const from = message.from;
+      const text = message.text?.body;
+
+      console.log("Mensaje recibido:", text);
+
+      // RESPUESTA AUTOMÁTICA
+      await fetch(`https://graph.facebook.com/v19.0/${process.env.META_PHONE_NUMBER_ID}/messages`, {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${process.env.META_ACCESS_TOKEN}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          messaging_product: "whatsapp",
+          to: from,
+          text: {
+            body: "Hola 👋 Soy KFD. ¿Buscás rehabilitación o entrenamiento?"
+          }
+        })
+      });
+    }
+
+    res.sendStatus(200);
+  } catch (error) {
+    console.error("Error:", error);
+    res.sendStatus(500);
+  }
 });
 
 app.listen(3000, () => console.log("Servidor corriendo"));
